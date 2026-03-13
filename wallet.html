@@ -3,138 +3,225 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>⚽ 파시온 회계장부 2026</title>
+    <title>파시온 회계장부 2026</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Bebas+Neue&display=swap"
       rel="stylesheet" />
     <link rel="stylesheet" href="./css/style.css" />
   </head>
   <body>
-    <header class="header">
-      <div>
-        <div class="header-title">⚽ PASIÓN · 파시온</div>
-        <div class="header-sub">회계장부 2026 &nbsp;·&nbsp; 총무: 임시원</div>
+    <!-- ── 로그인 화면 ── -->
+    <div
+      id="login-screen"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(135deg, #0f1e3d, #1a3a6e);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+      ">
+      <div
+        style="
+          background: white;
+          border-radius: 20px;
+          padding: 48px 40px;
+          width: 360px;
+          max-width: 92vw;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+          text-align: center;
+        ">
+        <img
+          src="images/pasion.jpg"
+          alt="PASION"
+          style="width: 180px; border-radius: 12px; margin-bottom: 20px" />
+        <div style="font-size: 13px; color: #6b7a90; margin-bottom: 32px">
+          파시온 회비 현황
+        </div>
+        <div style="text-align: left; margin-bottom: 8px">
+          <label style="font-size: 12px; font-weight: 700; color: #6b7a90"
+            >이름을 선택하세요</label
+          >
+        </div>
+        <select
+          id="login-name-select"
+          style="
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid #e4e9f2;
+            border-radius: 10px;
+            font-family: &quot;Noto Sans KR&quot;, sans-serif;
+            font-size: 15px;
+            color: #1a2233;
+            outline: none;
+            margin-bottom: 20px;
+            background: white;
+          ">
+          <option value="">— 이름 선택 —</option>
+        </select>
+        <button
+          onclick="doLogin()"
+          style="
+            width: 100%;
+            padding: 14px;
+            background: #0f1e3d;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-family: &quot;Noto Sans KR&quot;, sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+          ">
+          입장하기
+        </button>
+        <div style="margin-top: 16px; font-size: 11px; color: #b0bac8">
+          본인 이름을 선택 후 들어오시기 바랍니다.
+        </div>
       </div>
-      <div class="header-right">
-        <span
-          id="sync-status"
-          style="font-size: 12px; color: var(--gray3); margin-right: 4px"
-          >⏳ 연결 중...</span
-        >
-        <button class="btn btn-outline" onclick="syncNow()">🔄 동기화</button>
-        <!-- <button class="btn btn-outline" onclick="exportData()">📥 백업</button>
-        <button class="btn btn-outline" onclick="importData()">📤 복원</button> -->
-        <!-- <button class="btn btn-outline" onclick="resetDB()">⚠️ 초기화</button> -->
-        <button class="btn btn-gold" onclick="exportExcel()">📊 엑셀</button>
-      </div>
-    </header>
+    </div>
 
-    <main class="main">
-      <div class="summary-grid">
-        <div class="card navy">
-          <div class="card-label">총 회원</div>
-          <div class="card-value" id="s-total">-</div>
+    <!-- ── 앱 화면 ── -->
+    <div id="app-screen" style="display: none">
+      <header class="header">
+        <div>
+          <div class="header-title">PASIÓN · 파시온</div>
+          <div class="header-sub">회계장부 2026 &nbsp;·&nbsp; 총무: 임시원</div>
         </div>
-        <div class="card green">
-          <div class="card-label">직장인</div>
-          <div class="card-value green" id="s-worker">-</div>
+        <div class="header-right">
+          <span id="sync-status" style="font-size: 12px; color: var(--gray3)"
+            >⏳ 연결 중...</span
+          >
+          <span
+            style="font-size: 12px; color: var(--gold2); font-weight: 600"
+            id="current-user-name"></span>
+          <button class="btn btn-outline" onclick="syncNow()">🔄 동기화</button>
+          <!-- <button class="btn btn-outline admin-only" onclick="exportData()">
+            📥 백업
+          </button>
+          <button class="btn btn-outline admin-only" onclick="importData()">
+            📤 복원
+          </button>
+          <button class="btn btn-outline admin-only" onclick="resetDB()">
+            ⚠️ 초기화
+          </button> -->
+          <button class="btn btn-gold" onclick="exportExcel()">📊 엑셀</button>
+          <button class="btn btn-outline" onclick="doLogout()">
+            🚪 나가기
+          </button>
         </div>
-        <div class="card blue">
-          <div class="card-label">학생</div>
-          <div class="card-value blue" id="s-student">-</div>
-        </div>
-        <div class="card gold">
-          <div class="card-label">예상 총회비</div>
-          <div class="card-value gold" id="s-expected">-</div>
-        </div>
-        <div class="card green">
-          <div class="card-label">완납 인원</div>
-          <div class="card-value green" id="s-paid">-</div>
-        </div>
-        <div class="card red">
-          <div class="card-label">미납 인원</div>
-          <div class="card-value red" id="s-unpaid">-</div>
-        </div>
-        <div class="card green">
-          <div class="card-label">총 납부액</div>
-          <div class="card-value green" id="s-collected">-</div>
-        </div>
-        <div class="card red">
-          <div class="card-label">총 미납액</div>
-          <div class="card-value red" id="s-missing">-</div>
-        </div>
-      </div>
+      </header>
 
-      <div class="section-header">
-        <div class="section-title">회원 납부 현황</div>
-        <div class="search-bar">
-          <input
-            class="search-input"
-            id="search-name"
-            placeholder="🔍 이름 검색"
-            oninput="renderMembers()" />
-          <select
-            class="filter-select"
-            id="filter-type"
-            onchange="renderMembers()">
-            <option value="">전체</option>
-            <option value="직장인">직장인</option>
-            <option value="학생">학생</option>
-          </select>
-          <select
-            class="filter-select"
-            id="filter-pay"
-            onchange="renderMembers()">
-            <option value="">납부 전체</option>
-            <option value="완납">완납</option>
-            <option value="분할">분할납부</option>
-            <option value="일시정지">일시정지</option>
-            <option value="미납">미납</option>
-            <option value="반납">반납</option>
-          </select>
-          <select
-            class="filter-select"
-            id="filter-active"
-            onchange="renderMembers()">
-            <option value="all">전체 (비활성 포함)</option>
-            <option value="active">활성 회원</option>
-            <option value="inactive">비활성만</option>
-          </select>
+      <main class="main">
+        <div class="summary-grid">
+          <div class="card navy">
+            <div class="card-label">총 회원</div>
+            <div class="card-value" id="s-total">-</div>
+          </div>
+          <div class="card green">
+            <div class="card-label">직장인</div>
+            <div class="card-value green" id="s-worker">-</div>
+          </div>
+          <div class="card blue">
+            <div class="card-label">학생</div>
+            <div class="card-value blue" id="s-student">-</div>
+          </div>
+          <div class="card gold">
+            <div class="card-label">예상 총회비</div>
+            <div class="card-value gold" id="s-expected">-</div>
+          </div>
+          <div class="card green">
+            <div class="card-label">완납 인원</div>
+            <div class="card-value green" id="s-paid">-</div>
+          </div>
+          <div class="card red">
+            <div class="card-label">미납 인원</div>
+            <div class="card-value red" id="s-unpaid">-</div>
+          </div>
+          <div class="card green">
+            <div class="card-label">총 납부액</div>
+            <div class="card-value green" id="s-collected">-</div>
+          </div>
+          <div class="card red">
+            <div class="card-label">총 미납액</div>
+            <div class="card-value red" id="s-missing">-</div>
+          </div>
         </div>
-      </div>
 
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th class="left">이름</th>
-              <th>구분</th>
-              <th>현황</th>
-              <th>연회비</th>
-              <th>납부상태</th>
-              <th>납부액</th>
-              <th>미납액</th>
-              <th class="left">비고</th>
-              <th>관리</th>
-            </tr>
-          </thead>
-          <tbody id="members-tbody"></tbody>
-          <tfoot>
-            <tr class="total-row">
-              <td colspan="4" style="text-align: left; padding-left: 16px">
-                합 계
-              </td>
-              <td id="tf-fee" class="num"></td>
-              <td></td>
-              <td id="tf-collected" class="num amount-positive"></td>
-              <td id="tf-missing" class="num amount-negative"></td>
-              <td colspan="2"></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </main>
+        <div class="section-header">
+          <div class="section-title">회원 납부 현황</div>
+          <div class="search-bar">
+            <input
+              class="search-input"
+              id="search-name"
+              placeholder="🔍 이름 검색"
+              oninput="renderMembers()" />
+            <select
+              class="filter-select"
+              id="filter-type"
+              onchange="renderMembers()">
+              <option value="">전체</option>
+              <option value="직장인">직장인</option>
+              <option value="학생">학생</option>
+            </select>
+            <select
+              class="filter-select"
+              id="filter-pay"
+              onchange="renderMembers()">
+              <option value="">납부 전체</option>
+              <option value="완납">완납</option>
+              <option value="분할">분할납부</option>
+              <option value="일시정지">일시정지</option>
+              <option value="미납">미납</option>
+              <option value="반납">반납</option>
+            </select>
+            <select
+              class="filter-select"
+              id="filter-active"
+              onchange="renderMembers()">
+              <option value="all">전체 (비활성 포함)</option>
+              <option value="active">활성 회원</option>
+              <option value="inactive">비활성만</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th class="left">이름</th>
+                <th>구분</th>
+                <th>현황</th>
+                <th>연회비</th>
+                <th>납부상태</th>
+                <th>납부액</th>
+                <th>미납액</th>
+                <th class="left">비고</th>
+                <th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="members-tbody"></tbody>
+            <tfoot>
+              <tr class="total-row">
+                <td colspan="4" style="text-align: left; padding-left: 16px">
+                  합 계
+                </td>
+                <td id="tf-fee" class="num"></td>
+                <td></td>
+                <td id="tf-collected" class="num amount-positive"></td>
+                <td id="tf-missing" class="num amount-negative"></td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </main>
+    </div>
+    <!-- /app-screen -->
 
     <!-- MODAL: 회원 수정 -->
     <div class="modal-overlay" id="modal-member">
@@ -147,7 +234,12 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">납부 상태</label>
+            <label class="form-label"
+              >납부 상태
+              <span style="color: #b0bac8; font-size: 10px"
+                >(관리자만)</span
+              ></label
+            >
             <select class="form-control" id="edit-payStatus">
               <option value="미납">미납</option>
               <option value="완납">완납</option>
@@ -157,7 +249,12 @@
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">활동 현황</label>
+            <label class="form-label"
+              >활동 현황
+              <span style="color: #b0bac8; font-size: 10px"
+                >(관리자만)</span
+              ></label
+            >
             <select class="form-control" id="edit-status">
               <option value="재직중">재직중</option>
               <option value="휴직중">휴직중</option>

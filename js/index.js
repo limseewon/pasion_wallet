@@ -1,10 +1,9 @@
 /* ═══════════════════════════════════════════════
    파시온 회계장부 2026 — app.js (Google Sheets 연동)
-   
-   ★ SCRIPT_URL에 Apps Script 배포 URL을 붙여넣으세요
    ═══════════════════════════════════════════════ */
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyP6N6m_nsV64IGsd3U5bbAt031d2eTm9Stt-Yj3iauHvwLnxtZGoX3rskwl0lx4pQ/exec";
+const ADMIN = "임시원";
 
 const FEE = { 직장인: 400000, 학생: 240000 };
 
@@ -48,11 +47,60 @@ const wonShort = n => {
   return sign + (v >= 10000 ? (v / 10000).toFixed(0) + "만원" : v.toLocaleString("ko-KR") + "원");
 };
 const defStatus = m => m.type === "직장인" ? "재직중" : "재학중";
+const isAdmin = () => currentUser === ADMIN;
 
 function calcPaid(m) { return Number(m.paid || 0); }
 function calcMissing(m) { return Math.max(0, FEE[m.type] - calcPaid(m)); }
 
-/* ── DB (로컬스토리지 + 구글 시트 동기화) ── */
+/* ── 로그인 ── */
+let currentUser = localStorage.getItem("pasion_user") || null;
+
+function showLoginScreen() {
+  document.getElementById("login-screen").style.display = "flex";
+  document.getElementById("app-screen").style.display = "none";
+
+  const names = INIT_MEMBERS.map(m => m.name).sort((a, b) => a.localeCompare(b, "ko"));
+  const select = document.getElementById("login-name-select");
+  select.innerHTML = '<option value="">— 이름을 선택하세요 —</option>';
+  names.forEach(n => {
+    const opt = document.createElement("option");
+    opt.value = opt.textContent = n;
+    select.appendChild(opt);
+  });
+}
+
+function doLogin() {
+  const name = document.getElementById("login-name-select").value;
+  if (!name) { alert("이름을 선택해주세요."); return; }
+  currentUser = name;
+  localStorage.setItem("pasion_user", name);
+  startApp();
+}
+
+function doLogout() {
+  localStorage.removeItem("pasion_user");
+  currentUser = null;
+  showLoginScreen();
+}
+
+function startApp() {
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app-screen").style.display = "block";
+
+  // 관리자 전용 UI 표시
+  document.querySelectorAll(".admin-only").forEach(el => {
+    el.style.display = isAdmin() ? "" : "none";
+  });
+
+  // 로그인 사용자 표시
+  setText("current-user-name", currentUser + (isAdmin() ? " 👑" : ""));
+
+  db = loadLocalDB();
+  render();
+  loadFromSheet().then(() => render());
+}
+
+/* ── DB ── */
 let db = { members: [] };
 
 function initLocalDB() {
@@ -72,18 +120,11 @@ function loadLocalDB() {
   } catch (e) { return initLocalDB(); }
 }
 
-function saveLocal() {
-  localStorage.setItem("pasion2026", JSON.stringify(db));
-}
+function saveLocal() { localStorage.setItem("pasion2026", JSON.stringify(db)); }
 
 /* ── 구글 시트 연동 ── */
-function isScriptReady() {
-  return SCRIPT_URL && !SCRIPT_URL.includes("여기에");
-}
-
 async function loadFromSheet() {
-  if (!isScriptReady()) return false;
-  setStatus("🔄 구글 시트에서 불러오는 중...");
+  setStatus("🔄 불러오는 중...");
   try {
     const res = await fetch(SCRIPT_URL + "?action=load");
     const data = await res.json();
@@ -91,42 +132,28 @@ async function loadFromSheet() {
     if (data.members && data.members.length > 0) {
       db.members = data.members;
       saveLocal();
-      setStatus("✅ 구글 시트 연동됨");
+      setStatus("✅ 연동됨");
       return true;
     }
-    // 시트가 비어있으면 로컬 데이터로 시트 초기화
     await saveToSheet();
-    setStatus("✅ 구글 시트에 초기 데이터 저장됨");
+    setStatus("✅ 초기 데이터 저장됨");
     return true;
   } catch (e) {
-    setStatus("⚠️ 시트 연결 실패 — 로컬 데이터 사용 중");
+    setStatus("⚠️ 연결 실패");
     return false;
   }
 }
 
 async function saveToSheet() {
-  if (!isScriptReady()) return;
   try {
-    const params = new URLSearchParams({
-      action: "save",
-      members: JSON.stringify(db.members)
-    });
+    const params = new URLSearchParams({ action: "save", members: JSON.stringify(db.members) });
     await fetch(SCRIPT_URL, { method: "POST", body: params });
-  } catch (e) {
-    console.warn("시트 저장 실패:", e);
-  }
+  } catch (e) { console.warn("시트 저장 실패:", e); }
 }
 
-async function saveDB() {
-  saveLocal();
-  await saveToSheet();
-}
+async function saveDB() { saveLocal(); await saveToSheet(); }
 
-/* ── UI 상태 표시 ── */
-function setStatus(msg) {
-  const el = document.getElementById("sync-status");
-  if (el) el.textContent = msg;
-}
+function setStatus(msg) { setText("sync-status", msg); }
 
 /* ── RENDER ── */
 function render() { renderCards(); renderMembers(); }
@@ -166,20 +193,28 @@ function renderMembers() {
 
   list.forEach((m, seq) => {
     const fee = FEE[m.type], tp = calcPaid(m), mis = calcMissing(m);
-    const isTreas = m.name === "임시원";
+    const isTreas = m.name === ADMIN;
     const isActive = m.status === "재직중" || m.status === "재학중";
+    const canEdit = isAdmin() || m.name === currentUser;
+    const canToggle = isAdmin();
+
     const tr = document.createElement("tr");
     tr.style.opacity = m.active ? "1" : "0.45";
+    if (m.name === currentUser && !isAdmin()) {
+      tr.style.background = "#fffde7"; // 본인 행 하이라이트
+    }
+
     tr.innerHTML = `
       <td style="color:#b0bac8;font-size:11px">${seq + 1}</td>
       <td class="left" style="font-weight:${isTreas ? 700 : 400};color:${isTreas ? "var(--gold)" : "var(--text)"}">
         ${isTreas ? "★ " : ""}${m.name}
+        ${m.name === currentUser ? '<span style="font-size:10px;color:var(--blue);margin-left:4px">나</span>' : ""}
         ${!m.active ? '<span class="badge badge-inactive" style="margin-left:4px">비활성</span>' : ""}
       </td>
       <td><span class="badge ${m.type === "직장인" ? "badge-worker" : "badge-student"}">${m.type}</span></td>
       <td>
         <span class="status-btn ${isActive ? "status-active" : "status-inactive"}"
-          onclick="cycleStatus(${m._i})" title="클릭하여 변경">${m.status}</span>
+          ${isAdmin() ? `onclick="cycleStatus(${m._i})" title="클릭하여 변경" style="cursor:pointer"` : ""}>${m.status}</span>
       </td>
       <td class="num">${won(fee)}</td>
       <td><span class="badge ${BADGE_MAP[m.payStatus] || "badge-unpaid"}">${m.payStatus}</span></td>
@@ -187,8 +222,8 @@ function renderMembers() {
       <td class="num ${mis > 0 ? "amount-negative" : ""}">${mis > 0 ? won(mis) : "✅"}</td>
       <td class="left" style="color:var(--gray4);font-size:12px">${m.note || ""}</td>
       <td>
-        <button class="icon-btn" onclick="openEditMember(${m._i})" title="수정">✏️</button>
-        <button class="icon-btn" onclick="hideToggle(${m._i})" title="${m.active ? "비활성화" : "활성화"}">${m.active ? "🔕" : "🔔"}</button>
+        ${canEdit ? `<button class="icon-btn" onclick="openEditMember(${m._i})" title="수정">✏️</button>` : ""}
+        ${canToggle ? `<button class="icon-btn" onclick="hideToggle(${m._i})" title="${m.active ? "비활성화" : "활성화"}">${m.active ? "🔕" : "🔔"}</button>` : ""}
       </td>`;
     tbody.appendChild(tr);
   });
@@ -201,6 +236,7 @@ function renderMembers() {
 
 /* ── ACTIONS ── */
 function cycleStatus(idx) {
+  if (!isAdmin()) return;
   const cur = db.members[idx].status;
   const i = STATUS_CYCLE.indexOf(cur);
   db.members[idx].status = STATUS_CYCLE[(i + 1) % STATUS_CYCLE.length];
@@ -208,6 +244,7 @@ function cycleStatus(idx) {
 }
 
 function hideToggle(idx) {
+  if (!isAdmin()) return;
   db.members[idx].active = !db.members[idx].active;
   saveDB(); render();
   showToast(db.members[idx].active ? "🔔 활성화됨" : "🔕 비활성화됨");
@@ -215,32 +252,47 @@ function hideToggle(idx) {
 
 function openEditMember(idx) {
   const m = db.members[idx];
+  // 권한 체크
+  if (!isAdmin() && m.name !== currentUser) { showToast("⚠️ 본인 정보만 수정할 수 있습니다"); return; }
+
   document.getElementById("edit-idx").value = idx;
   document.getElementById("edit-name").value = m.name;
   document.getElementById("edit-payStatus").value = m.payStatus;
   document.getElementById("edit-status").value = m.status;
   document.getElementById("edit-paid").value = m.paid || 0;
   document.getElementById("edit-note").value = m.note || "";
+
+  // 관리자만 납부상태 변경 가능
+  document.getElementById("edit-payStatus").disabled = !isAdmin();
+  // 관리자만 현황 변경 가능
+  document.getElementById("edit-status").disabled = !isAdmin();
+
   openModal("modal-member");
 }
 
 function saveMember() {
   const idx = parseInt(document.getElementById("edit-idx").value);
   const m = db.members[idx];
-  m.payStatus = document.getElementById("edit-payStatus").value;
-  m.status = document.getElementById("edit-status").value;
+  if (!isAdmin() && m.name !== currentUser) return;
+
+  if (isAdmin()) {
+    m.payStatus = document.getElementById("edit-payStatus").value;
+    m.status = document.getElementById("edit-status").value;
+  }
   m.paid = Number(document.getElementById("edit-paid").value) || 0;
   m.note = document.getElementById("edit-note").value;
+
   saveDB(); closeModal("modal-member"); render();
-  showToast("✅ 저장됨 — 구글 시트 동기화 중...");
+  showToast("✅ 저장됨 — 동기화 중...");
 }
 
 /* ── MODAL ── */
 function openModal(id) { document.getElementById(id).classList.add("open"); }
 function closeModal(id) { document.getElementById(id).classList.remove("open"); }
-
-document.querySelectorAll(".modal-overlay").forEach(el => {
-  el.addEventListener("click", e => { if (e.target === el) el.classList.remove("open"); });
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".modal-overlay").forEach(el => {
+    el.addEventListener("click", e => { if (e.target === el) el.classList.remove("open"); });
+  });
 });
 
 /* ── TOAST ── */
@@ -251,8 +303,9 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove("show"), 2500);
 }
 
-/* ── BACKUP / RESTORE / RESET ── */
+/* ── BACKUP / RESTORE / RESET (관리자 전용) ── */
 function exportData() {
+  if (!isAdmin()) return;
   const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -262,16 +315,14 @@ function exportData() {
 }
 
 function importData() {
+  if (!isAdmin()) return;
   const input = document.createElement("input");
   input.type = "file"; input.accept = ".json";
   input.onchange = e => {
     const reader = new FileReader();
     reader.onload = async ev => {
-      try {
-        db = JSON.parse(ev.target.result);
-        await saveDB(); render();
-        showToast("📤 복원 완료!");
-      } catch { showToast("⚠️ 파일 형식 오류"); }
+      try { db = JSON.parse(ev.target.result); await saveDB(); render(); showToast("📤 복원 완료!"); }
+      catch { showToast("⚠️ 파일 형식 오류"); }
     };
     reader.readAsText(e.target.files[0]);
   };
@@ -279,6 +330,7 @@ function importData() {
 }
 
 function resetDB() {
+  if (!isAdmin()) return;
   if (!confirm("⚠️ 모든 데이터를 초기화할까요?\n먼저 백업을 권장합니다.")) return;
   localStorage.removeItem("pasion2026");
   db = initLocalDB();
@@ -318,6 +370,8 @@ function setText(id, v) { const el = document.getElementById(id); if (el) el.tex
 function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ""; }
 
 /* ── INIT ── */
-db = loadLocalDB();
-render();
-loadFromSheet().then(() => render());
+if (currentUser) {
+  startApp();
+} else {
+  document.addEventListener("DOMContentLoaded", showLoginScreen);
+}
