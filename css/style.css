@@ -645,3 +645,8 @@ td.left {
     font-size: 12px;
   }
 }
+
+.badge-jobseeker {
+  background: #fff3e0;
+  color: #e65100;
+}

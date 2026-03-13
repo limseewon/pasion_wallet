@@ -5,7 +5,7 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyP6N6m_nsV64IGsd3U5bbAt031d2eTm9Stt-Yj3iauHvwLnxtZGoX3rskwl0lx4pQ/exec";
 const ADMIN = "임시원";
 
-const FEE = { 직장인: 400000, 학생: 240000 };
+const FEE = { 직장인: 400000, 학생: 240000, 취준생: 240000 };
 
 const INIT_MEMBERS = [
   { name: "오민구", type: "직장인", payStatus: "완납", paid: 400000, active: true, note: "" },
@@ -39,14 +39,14 @@ const BADGE_MAP = {
   완납: "badge-paid", 미납: "badge-unpaid", 분할: "badge-partial",
   반납: "badge-refund", 일시정지: "badge-paused"
 };
-const STATUS_CYCLE = ["재직중", "휴직중", "퇴직", "재학중", "졸업", "휴학중"];
+const STATUS_CYCLE = ["재직중", "휴직중", "퇴직", "재학중", "취준중", "졸업", "휴학중"];
 
 const won = n => Number(n || 0).toLocaleString("ko-KR") + "원";
 const wonShort = n => {
   const v = Math.abs(n), sign = n < 0 ? "-" : "";
   return sign + (v >= 10000 ? (v / 10000).toFixed(0) + "만원" : v.toLocaleString("ko-KR") + "원");
 };
-const defStatus = m => m.type === "직장인" ? "재직중" : "재학중";
+const defStatus = m => m.type === "직장인" ? "재직중" : m.type === "취준생" ? "취준중" : "재학중";
 const isAdmin = () => currentUser === ADMIN;
 
 function calcPaid(m) { return Number(m.paid || 0); }
@@ -211,7 +211,7 @@ function renderMembers() {
         ${m.name === currentUser ? '<span style="font-size:10px;color:var(--blue);margin-left:4px">나</span>' : ""}
         ${!m.active ? '<span class="badge badge-inactive" style="margin-left:4px">비활성</span>' : ""}
       </td>
-      <td><span class="badge ${m.type === "직장인" ? "badge-worker" : "badge-student"}">${m.type}</span></td>
+      <td><span class="badge ${m.type === "직장인" ? "badge-worker" : m.type === "취준생" ? "badge-jobseeker" : "badge-student"}">${m.type}</span></td>
       <td>
         <span class="status-btn ${isActive ? "status-active" : "status-inactive"}"
           ${isAdmin() ? `onclick="cycleStatus(${m._i})" title="클릭하여 변경" style="cursor:pointer"` : ""}>${m.status}</span>
@@ -262,10 +262,9 @@ function openEditMember(idx) {
   document.getElementById("edit-paid").value = m.paid || 0;
   document.getElementById("edit-note").value = m.note || "";
 
-  // 관리자만 납부상태 변경 가능
-  document.getElementById("edit-payStatus").disabled = !isAdmin();
-  // 관리자만 현황 변경 가능
-  document.getElementById("edit-status").disabled = !isAdmin();
+  // 본인 또는 관리자 모두 납부상태/현황 수정 가능
+  document.getElementById("edit-payStatus").disabled = false;
+  document.getElementById("edit-status").disabled = false;
 
   openModal("modal-member");
 }
@@ -275,10 +274,9 @@ function saveMember() {
   const m = db.members[idx];
   if (!isAdmin() && m.name !== currentUser) return;
 
-  if (isAdmin()) {
-    m.payStatus = document.getElementById("edit-payStatus").value;
-    m.status = document.getElementById("edit-status").value;
-  }
+  m.type = document.getElementById("edit-type").value;
+  m.payStatus = document.getElementById("edit-payStatus").value;
+  m.status = document.getElementById("edit-status").value;
   m.paid = Number(document.getElementById("edit-paid").value) || 0;
   m.note = document.getElementById("edit-note").value;
 

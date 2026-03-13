@@ -78,7 +78,7 @@
           입장하기
         </button>
         <div style="margin-top: 16px; font-size: 11px; color: #b0bac8">
-          본인 이름을 선택 후 들어오시기 바랍니다.
+          본인 이름을 선택하면 납부 정보를 확인할 수 있습니다
         </div>
       </div>
     </div>
@@ -87,7 +87,7 @@
     <div id="app-screen" style="display: none">
       <header class="header">
         <div>
-          <div class="header-title">PASIÓN · 파시온</div>
+          <div class="header-title">⚽ PASIÓN · 파시온</div>
           <div class="header-sub">회계장부 2026 &nbsp;·&nbsp; 총무: 임시원</div>
         </div>
         <div class="header-right">
@@ -98,7 +98,7 @@
             style="font-size: 12px; color: var(--gold2); font-weight: 600"
             id="current-user-name"></span>
           <button class="btn btn-outline" onclick="syncNow()">🔄 동기화</button>
-          <!-- <button class="btn btn-outline admin-only" onclick="exportData()">
+          <button class="btn btn-outline admin-only" onclick="exportData()">
             📥 백업
           </button>
           <button class="btn btn-outline admin-only" onclick="importData()">
@@ -106,7 +106,7 @@
           </button>
           <button class="btn btn-outline admin-only" onclick="resetDB()">
             ⚠️ 초기화
-          </button> -->
+          </button>
           <button class="btn btn-gold" onclick="exportExcel()">📊 엑셀</button>
           <button class="btn btn-outline" onclick="doLogout()">
             🚪 나가기
@@ -232,14 +232,17 @@
           <label class="form-label">이름</label>
           <input class="form-control" id="edit-name" readonly />
         </div>
+        <div class="form-group">
+          <label class="form-label">구분</label>
+          <select class="form-control" id="edit-type">
+            <option value="직장인">직장인</option>
+            <option value="학생">학생</option>
+            <option value="취준생">취준생</option>
+          </select>
+        </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label"
-              >납부 상태
-              <span style="color: #b0bac8; font-size: 10px"
-                >(관리자만)</span
-              ></label
-            >
+            <label class="form-label">납부 상태 </label>
             <select class="form-control" id="edit-payStatus">
               <option value="미납">미납</option>
               <option value="완납">완납</option>
@@ -249,12 +252,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label"
-              >활동 현황
-              <span style="color: #b0bac8; font-size: 10px"
-                >(관리자만)</span
-              ></label
-            >
+            <label class="form-label">활동 현황 </label>
             <select class="form-control" id="edit-status">
               <option value="재직중">재직중</option>
               <option value="휴직중">휴직중</option>
