@@ -4,6 +4,7 @@
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyP6N6m_nsV64IGsd3U5bbAt031d2eTm9Stt-Yj3iauHvwLnxtZGoX3rskwl0lx4pQ/exec";
 const ADMIN = "임시원";
+const ADMIN_PW = "4416";
 
 const FEE = { 직장인: 400000, 학생: 240000, 취준생: 240000 };
 
@@ -59,6 +60,9 @@ function showLoginScreen() {
   document.getElementById("login-screen").style.display = "flex";
   document.getElementById("app-screen").style.display = "none";
 
+  // 비밀번호 입력칸 초기 숨김
+  updatePwField();
+
   const names = INIT_MEMBERS.map(m => m.name).sort((a, b) => a.localeCompare(b, "ko"));
   const select = document.getElementById("login-name-select");
   select.innerHTML = '<option value="">— 이름을 선택하세요 —</option>';
@@ -67,11 +71,40 @@ function showLoginScreen() {
     opt.value = opt.textContent = n;
     select.appendChild(opt);
   });
+
+  select.addEventListener("change", updatePwField);
+}
+
+function updatePwField() {
+  const name = document.getElementById("login-name-select").value;
+  const pwWrap = document.getElementById("pw-wrap");
+  if (pwWrap) {
+    pwWrap.style.display = name === ADMIN ? "block" : "none";
+    document.getElementById("login-pw").value = "";
+  }
 }
 
 function doLogin() {
   const name = document.getElementById("login-name-select").value;
   if (!name) { alert("이름을 선택해주세요."); return; }
+
+  if (name === ADMIN) {
+    const pw = document.getElementById("login-pw").value;
+    if (pw !== ADMIN_PW) {
+      // 비밀번호 틀림 — 입력창 흔들기 애니메이션
+      const pwInput = document.getElementById("login-pw");
+      pwInput.style.borderColor = "#c0392b";
+      pwInput.style.animation = "shake 0.4s ease";
+      setTimeout(() => {
+        pwInput.style.animation = "";
+        pwInput.style.borderColor = "";
+        pwInput.value = "";
+        pwInput.focus();
+      }, 400);
+      return;
+    }
+  }
+
   currentUser = name;
   localStorage.setItem("pasion_user", name);
   startApp();
@@ -87,12 +120,10 @@ function startApp() {
   document.getElementById("login-screen").style.display = "none";
   document.getElementById("app-screen").style.display = "block";
 
-  // 관리자 전용 UI 표시
   document.querySelectorAll(".admin-only").forEach(el => {
     el.style.display = isAdmin() ? "" : "none";
   });
 
-  // 로그인 사용자 표시
   setText("current-user-name", currentUser + (isAdmin() ? " 👑" : ""));
 
   db = loadLocalDB();
@@ -201,7 +232,7 @@ function renderMembers() {
     const tr = document.createElement("tr");
     tr.style.opacity = m.active ? "1" : "0.45";
     if (m.name === currentUser && !isAdmin()) {
-      tr.style.background = "#fffde7"; // 본인 행 하이라이트
+      tr.style.background = "#fffde7";
     }
 
     tr.innerHTML = `
@@ -252,17 +283,16 @@ function hideToggle(idx) {
 
 function openEditMember(idx) {
   const m = db.members[idx];
-  // 권한 체크
   if (!isAdmin() && m.name !== currentUser) { showToast("⚠️ 본인 정보만 수정할 수 있습니다"); return; }
 
   document.getElementById("edit-idx").value = idx;
   document.getElementById("edit-name").value = m.name;
+  document.getElementById("edit-type").value = m.type;
   document.getElementById("edit-payStatus").value = m.payStatus;
   document.getElementById("edit-status").value = m.status;
   document.getElementById("edit-paid").value = m.paid || 0;
   document.getElementById("edit-note").value = m.note || "";
 
-  // 본인 또는 관리자 모두 납부상태/현황 수정 가능
   document.getElementById("edit-payStatus").disabled = false;
   document.getElementById("edit-status").disabled = false;
 
@@ -301,7 +331,7 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove("show"), 2500);
 }
 
-/* ── BACKUP / RESTORE / RESET (관리자 전용) ── */
+/* ── BACKUP / RESTORE / RESET ── */
 function exportData() {
   if (!isAdmin()) return;
   const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });

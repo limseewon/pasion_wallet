@@ -11,106 +11,47 @@
   </head>
   <body>
     <!-- ── 로그인 화면 ── -->
-    <div
-      id="login-screen"
-      style="
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: linear-gradient(135deg, #0f1e3d, #1a3a6e);
-        z-index: 9999;
-        align-items: center;
-        justify-content: center;
-      ">
-      <div
-        style="
-          background: white;
-          border-radius: 20px;
-          padding: 48px 40px;
-          width: 360px;
-          max-width: 92vw;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-          text-align: center;
-        ">
-        <img
-          src="images/pasion.jpg"
-          alt="PASION"
-          style="width: 180px; border-radius: 12px; margin-bottom: 20px" />
-        <div style="font-size: 13px; color: #6b7a90; margin-bottom: 32px">
-          파시온 회비 현황
+    <div id="login-screen" style="display:none; position:fixed; inset:0; background:linear-gradient(135deg,#0f1e3d,#1a3a6e); z-index:9999; align-items:center; justify-content:center;">
+      <div class="login-card">
+        <img src="images/pasion.jpg" alt="PASION" class="login-logo" />
+        <div class="login-subtitle">파시온 회비 현황</div>
+
+        <div class="form-group" style="text-align:left;">
+          <label class="form-label">이름을 선택하세요</label>
+          <select id="login-name-select" class="form-control login-select">
+            <option value="">— 이름 선택 —</option>
+          </select>
         </div>
-        <div style="text-align: left; margin-bottom: 8px">
-          <label style="font-size: 12px; font-weight: 700; color: #6b7a90"
-            >이름을 선택하세요</label
-          >
+
+        <!-- 비밀번호 (임시원 선택 시에만 표시) -->
+        <div id="pw-wrap" class="form-group" style="display:none; text-align:left;">
+          <label class="form-label">비밀번호</label>
+          <input
+            id="login-pw"
+            type="password"
+            placeholder="비밀번호 입력"
+            class="form-control login-select"
+            onkeydown="if(event.key==='Enter') doLogin()" />
         </div>
-        <select
-          id="login-name-select"
-          style="
-            width: 100%;
-            padding: 12px 14px;
-            border: 1.5px solid #e4e9f2;
-            border-radius: 10px;
-            font-family: &quot;Noto Sans KR&quot;, sans-serif;
-            font-size: 15px;
-            color: #1a2233;
-            outline: none;
-            margin-bottom: 20px;
-            background: white;
-          ">
-          <option value="">— 이름 선택 —</option>
-        </select>
-        <button
-          onclick="doLogin()"
-          style="
-            width: 100%;
-            padding: 14px;
-            background: #0f1e3d;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-family: &quot;Noto Sans KR&quot;, sans-serif;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background 0.2s;
-          ">
-          입장하기
-        </button>
-        <div style="margin-top: 16px; font-size: 11px; color: #b0bac8">
-          본인 이름을 선택하면 납부 정보를 확인할 수 있습니다
-        </div>
+
+        <button onclick="doLogin()" class="login-btn">입장하기</button>
+        <div class="login-hint">본인 이름을 선택하면 납부 정보를 확인할 수 있습니다</div>
       </div>
     </div>
 
     <!-- ── 앱 화면 ── -->
-    <div id="app-screen" style="display: none">
+    <div id="app-screen" style="display:none">
       <header class="header">
-        <div>
+        <div class="header-left">
           <div class="header-title">PASIÓN · 파시온</div>
           <div class="header-sub">회계장부 2026 &nbsp;·&nbsp; 총무: 임시원</div>
         </div>
         <div class="header-right">
-          <span id="sync-status" style="font-size: 12px; color: var(--gray3)"
-            >⏳ 연결 중...</span
-          >
-          <span
-            style="font-size: 12px; color: var(--gold2); font-weight: 600"
-            id="current-user-name"></span>
+          <span id="sync-status" class="sync-status">⏳ 연결 중...</span>
+          <span id="current-user-name" class="current-user"></span>
           <button class="btn btn-outline" onclick="syncNow()">🔄 동기화</button>
-          <!-- <button class="btn btn-outline admin-only" onclick="exportData()">
-            📥 백업
-          </button>
-          <button class="btn btn-outline admin-only" onclick="importData()">
-            📤 복원
-          </button>
-          <button class="btn btn-outline admin-only" onclick="resetDB()">
-            ⚠️ 초기화
-          </button> -->
           <button class="btn btn-gold" onclick="exportExcel()">📊 엑셀</button>
-          <button class="btn btn-outline" onclick="doLogout()">
-            🚪 나가기
-          </button>
+          <button class="btn btn-outline" onclick="doLogout()">🚪 나가기</button>
         </div>
       </header>
 
@@ -153,23 +94,13 @@
         <div class="section-header">
           <div class="section-title">회원 납부 현황</div>
           <div class="search-bar">
-            <input
-              class="search-input"
-              id="search-name"
-              placeholder="🔍 이름 검색"
-              oninput="renderMembers()" />
-            <select
-              class="filter-select"
-              id="filter-type"
-              onchange="renderMembers()">
+            <input class="search-input" id="search-name" placeholder="🔍 이름 검색" oninput="renderMembers()" />
+            <select class="filter-select" id="filter-type" onchange="renderMembers()">
               <option value="">전체</option>
               <option value="직장인">직장인</option>
               <option value="학생">학생</option>
             </select>
-            <select
-              class="filter-select"
-              id="filter-pay"
-              onchange="renderMembers()">
+            <select class="filter-select" id="filter-pay" onchange="renderMembers()">
               <option value="">납부 전체</option>
               <option value="완납">완납</option>
               <option value="분할">분할납부</option>
@@ -177,10 +108,7 @@
               <option value="미납">미납</option>
               <option value="반납">반납</option>
             </select>
-            <select
-              class="filter-select"
-              id="filter-active"
-              onchange="renderMembers()">
+            <select class="filter-select" id="filter-active" onchange="renderMembers()">
               <option value="all">전체 (비활성 포함)</option>
               <option value="active">활성 회원</option>
               <option value="inactive">비활성만</option>
@@ -207,9 +135,7 @@
             <tbody id="members-tbody"></tbody>
             <tfoot>
               <tr class="total-row">
-                <td colspan="4" style="text-align: left; padding-left: 16px">
-                  합 계
-                </td>
+                <td colspan="4" style="text-align:left; padding-left:16px">합 계</td>
                 <td id="tf-fee" class="num"></td>
                 <td></td>
                 <td id="tf-collected" class="num amount-positive"></td>
@@ -221,7 +147,6 @@
         </div>
       </main>
     </div>
-    <!-- /app-screen -->
 
     <!-- MODAL: 회원 수정 -->
     <div class="modal-overlay" id="modal-member">
@@ -242,7 +167,7 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">납부 상태 </label>
+            <label class="form-label">납부 상태</label>
             <select class="form-control" id="edit-payStatus">
               <option value="미납">미납</option>
               <option value="완납">완납</option>
@@ -252,7 +177,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">활동 현황 </label>
+            <label class="form-label">활동 현황</label>
             <select class="form-control" id="edit-status">
               <option value="재직중">재직중</option>
               <option value="휴직중">휴직중</option>
@@ -265,22 +190,14 @@
         </div>
         <div class="form-group">
           <label class="form-label">납부액 (원)</label>
-          <input
-            class="form-control"
-            type="number"
-            id="edit-paid"
-            placeholder="0" />
+          <input class="form-control" type="number" id="edit-paid" placeholder="0" />
         </div>
         <div class="form-group">
           <label class="form-label">비고</label>
           <input class="form-control" id="edit-note" placeholder="메모" />
         </div>
         <div class="modal-actions">
-          <button
-            class="btn btn-secondary"
-            onclick="closeModal('modal-member')">
-            취소
-          </button>
+          <button class="btn btn-secondary" onclick="closeModal('modal-member')">취소</button>
           <button class="btn btn-primary" onclick="saveMember()">저장</button>
         </div>
       </div>
