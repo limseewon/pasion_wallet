@@ -11,12 +11,22 @@
   </head>
   <body>
     <!-- ── 로그인 화면 ── -->
-    <div id="login-screen" style="display:none; position:fixed; inset:0; background:linear-gradient(135deg,#0f1e3d,#1a3a6e); z-index:9999; align-items:center; justify-content:center;">
+    <div
+      id="login-screen"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(135deg, #0f1e3d, #1a3a6e);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+      ">
       <div class="login-card">
         <img src="images/pasion.jpg" alt="PASION" class="login-logo" />
         <div class="login-subtitle">파시온 회비 현황</div>
 
-        <div class="form-group" style="text-align:left;">
+        <div class="form-group" style="text-align: left">
           <label class="form-label">이름을 선택하세요</label>
           <select id="login-name-select" class="form-control login-select">
             <option value="">— 이름 선택 —</option>
@@ -24,23 +34,28 @@
         </div>
 
         <!-- 비밀번호 (임시원 선택 시에만 표시) -->
-        <div id="pw-wrap" class="form-group" style="display:none; text-align:left;">
+        <div
+          id="pw-wrap"
+          class="form-group"
+          style="display: none; text-align: left">
           <label class="form-label">비밀번호</label>
           <input
             id="login-pw"
             type="password"
             placeholder="비밀번호 입력"
             class="form-control login-select"
-            onkeydown="if(event.key==='Enter') doLogin()" />
+            onkeydown="if (event.key === 'Enter') doLogin();" />
         </div>
 
         <button onclick="doLogin()" class="login-btn">입장하기</button>
-        <div class="login-hint">본인 이름을 선택하면 납부 정보를 확인할 수 있습니다</div>
+        <div class="login-hint">
+          본인 이름을 선택하면 납부 정보를 확인할 수 있습니다
+        </div>
       </div>
     </div>
 
     <!-- ── 앱 화면 ── -->
-    <div id="app-screen" style="display:none">
+    <div id="app-screen" style="display: none">
       <header class="header">
         <div class="header-left">
           <div class="header-title">PASIÓN · 파시온</div>
@@ -51,7 +66,9 @@
           <span id="current-user-name" class="current-user"></span>
           <button class="btn btn-outline" onclick="syncNow()">🔄 동기화</button>
           <button class="btn btn-gold" onclick="exportExcel()">📊 엑셀</button>
-          <button class="btn btn-outline" onclick="doLogout()">🚪 나가기</button>
+          <button class="btn btn-outline" onclick="doLogout()">
+            🚪 나가기
+          </button>
         </div>
       </header>
 
@@ -94,13 +111,23 @@
         <div class="section-header">
           <div class="section-title">회원 납부 현황</div>
           <div class="search-bar">
-            <input class="search-input" id="search-name" placeholder="🔍 이름 검색" oninput="renderMembers()" />
-            <select class="filter-select" id="filter-type" onchange="renderMembers()">
+            <input
+              class="search-input"
+              id="search-name"
+              placeholder="🔍 이름 검색"
+              oninput="renderMembers()" />
+            <select
+              class="filter-select"
+              id="filter-type"
+              onchange="renderMembers()">
               <option value="">전체</option>
               <option value="직장인">직장인</option>
               <option value="학생">학생</option>
             </select>
-            <select class="filter-select" id="filter-pay" onchange="renderMembers()">
+            <select
+              class="filter-select"
+              id="filter-pay"
+              onchange="renderMembers()">
               <option value="">납부 전체</option>
               <option value="완납">완납</option>
               <option value="분할">분할납부</option>
@@ -108,7 +135,10 @@
               <option value="미납">미납</option>
               <option value="반납">반납</option>
             </select>
-            <select class="filter-select" id="filter-active" onchange="renderMembers()">
+            <select
+              class="filter-select"
+              id="filter-active"
+              onchange="renderMembers()">
               <option value="all">전체 (비활성 포함)</option>
               <option value="active">활성 회원</option>
               <option value="inactive">비활성만</option>
@@ -135,7 +165,9 @@
             <tbody id="members-tbody"></tbody>
             <tfoot>
               <tr class="total-row">
-                <td colspan="4" style="text-align:left; padding-left:16px">합 계</td>
+                <td colspan="4" style="text-align: left; padding-left: 16px">
+                  합 계
+                </td>
                 <td id="tf-fee" class="num"></td>
                 <td></td>
                 <td id="tf-collected" class="num amount-positive"></td>
@@ -144,6 +176,41 @@
               </tr>
             </tfoot>
           </table>
+        </div>
+
+        <!-- ── 방문 기록 (관리자 전용) ── -->
+        <div id="visit-section" style="display: none; margin-top: 36px">
+          <div class="section-header">
+            <div class="section-title">
+              👣 방문 기록
+              <span class="visit-admin-badge">관리자 전용</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px">
+              <span
+                id="visit-summary"
+                style="font-size: 12px; color: var(--gray4)"></span>
+              <button
+                class="btn btn-outline-navy"
+                onclick="loadVisitsFromSheet()">
+                🔄 새로고침
+              </button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th class="left">이름</th>
+                  <th>접속 일시</th>
+                  <th>기기 · 브라우저</th>
+                  <th>방문 횟수</th>
+                </tr>
+              </thead>
+              <tbody id="visits-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </main>
     </div>
@@ -190,14 +257,22 @@
         </div>
         <div class="form-group">
           <label class="form-label">납부액 (원)</label>
-          <input class="form-control" type="number" id="edit-paid" placeholder="0" />
+          <input
+            class="form-control"
+            type="number"
+            id="edit-paid"
+            placeholder="0" />
         </div>
         <div class="form-group">
           <label class="form-label">비고</label>
           <input class="form-control" id="edit-note" placeholder="메모" />
         </div>
         <div class="modal-actions">
-          <button class="btn btn-secondary" onclick="closeModal('modal-member')">취소</button>
+          <button
+            class="btn btn-secondary"
+            onclick="closeModal('modal-member')">
+            취소
+          </button>
           <button class="btn btn-primary" onclick="saveMember()">저장</button>
         </div>
       </div>

@@ -60,7 +60,6 @@ function showLoginScreen() {
   document.getElementById("login-screen").style.display = "flex";
   document.getElementById("app-screen").style.display = "none";
 
-  // 비밀번호 입력칸 초기 숨김
   updatePwField();
 
   const names = INIT_MEMBERS.map(m => m.name).sort((a, b) => a.localeCompare(b, "ko"));
@@ -91,7 +90,6 @@ function doLogin() {
   if (name === ADMIN) {
     const pw = document.getElementById("login-pw").value;
     if (pw !== ADMIN_PW) {
-      // 비밀번호 틀림 — 입력창 흔들기 애니메이션
       const pwInput = document.getElementById("login-pw");
       pwInput.style.borderColor = "#c0392b";
       pwInput.style.animation = "shake 0.4s ease";
@@ -128,6 +126,10 @@ function startApp() {
 
   db = loadLocalDB();
   render();
+
+  // 방문 기록 로깅 (구글 시트에 저장)
+  logVisit();
+
   loadFromSheet().then(() => render());
 }
 
@@ -164,6 +166,8 @@ async function loadFromSheet() {
       db.members = data.members;
       saveLocal();
       setStatus("✅ 연동됨");
+      // 관리자라면 방문 기록도 불러오기
+      if (isAdmin()) loadVisitsFromSheet();
       return true;
     }
     await saveToSheet();
@@ -185,6 +189,117 @@ async function saveToSheet() {
 async function saveDB() { saveLocal(); await saveToSheet(); }
 
 function setStatus(msg) { setText("sync-status", msg); }
+
+/* ══════════════════════════════════════════════
+   👣 방문 기록
+══════════════════════════════════════════════ */
+
+function getDeviceInfo() {
+  const ua = navigator.userAgent;
+  let device = "💻 PC";
+  if (/iPhone/.test(ua)) device = "🍎 iPhone";
+  else if (/iPad/.test(ua)) device = "🍎 iPad";
+  else if (/Android.*Mobile/.test(ua)) device = "📱 Android";
+  else if (/Android/.test(ua)) device = "📱 Android 태블릿";
+
+  let browser = "기타";
+  if (/CriOS/.test(ua)) browser = "Chrome(iOS)";
+  else if (/FxiOS/.test(ua)) browser = "Firefox(iOS)";
+  else if (/EdgiOS/.test(ua)) browser = "Edge(iOS)";
+  else if (/Safari/.test(ua) && /Version/.test(ua)) browser = "Safari";
+  else if (/Chrome/.test(ua)) browser = "Chrome";
+  else if (/Firefox/.test(ua)) browser = "Firefox";
+  else if (/Edg/.test(ua)) browser = "Edge";
+
+  return device + " · " + browser;
+}
+
+function nowStr() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  return now.getFullYear() + "." +
+    pad(now.getMonth() + 1) + "." +
+    pad(now.getDate()) + " " +
+    pad(now.getHours()) + ":" +
+    pad(now.getMinutes());
+}
+
+// 구글 시트에 방문 기록 전송
+async function logVisit() {
+  try {
+    const params = new URLSearchParams({
+      action: "logVisit",
+      name: currentUser,
+      time: nowStr(),
+      device: getDeviceInfo()
+    });
+    await fetch(SCRIPT_URL, { method: "POST", body: params });
+    // 관리자면 바로 목록 갱신
+    if (isAdmin()) loadVisitsFromSheet();
+  } catch (e) {
+    console.warn("방문 기록 저장 실패:", e);
+  }
+}
+
+// 구글 시트에서 방문 기록 불러오기 (관리자 전용)
+async function loadVisitsFromSheet() {
+  if (!isAdmin()) return;
+  try {
+    const res = await fetch(SCRIPT_URL + "?action=loadVisits");
+    const data = await res.json();
+    if (data.visits) {
+      renderVisits(data.visits);
+    }
+  } catch (e) {
+    console.warn("방문 기록 불러오기 실패:", e);
+  }
+}
+
+// 방문 기록 테이블 렌더링 (관리자만)
+function renderVisits(visits) {
+  if (!isAdmin()) return;
+
+  const section = document.getElementById("visit-section");
+  const tbody = document.getElementById("visits-tbody");
+  if (!section || !tbody) return;
+
+  section.style.display = "block";
+
+  // 방문자별 누적 횟수 계산
+  const countMap = {};
+  // 최신 → 오래된 순서로 처리해서 각자 몇 번째 방문인지 계산
+  const reversed = [...visits].reverse(); // 오래된 것부터
+  reversed.forEach(v => {
+    countMap[v.name] = (countMap[v.name] || 0) + 1;
+    v._visitNum = countMap[v.name]; // 해당 접속이 몇 번째 방문인지
+  });
+
+  // 총계 통계
+  const totalVisits = visits.length;
+  const uniqueVisitors = Object.keys(countMap).length;
+  setText("visit-summary", `총 ${totalVisits}건 · ${uniqueVisitors}명 방문`);
+
+  tbody.innerHTML = "";
+  visits.forEach((v, i) => {
+    const isAdminRow = v.name === ADMIN;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td style="color:#b0bac8;font-size:11px">${i + 1}</td>
+      <td class="left" style="font-weight:${isAdminRow ? 700 : 400};
+          color:${isAdminRow ? "var(--gold)" : "var(--text)"}">
+        ${isAdminRow ? "★ " : ""}${v.name}
+      </td>
+      <td style="color:var(--gray4);font-size:12px;font-variant-numeric:tabular-nums">${v.time}</td>
+      <td style="color:var(--gray4);font-size:12px">${v.device}</td>
+      <td>
+        <span class="badge ${v._visitNum === 1 ? "badge-paid" : "badge-partial"}">
+          ${v._visitNum}번째
+        </span>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
 
 /* ── RENDER ── */
 function render() { renderCards(); renderMembers(); }
@@ -369,6 +484,7 @@ function resetDB() {
 async function syncNow() {
   setStatus("🔄 동기화 중...");
   await loadFromSheet();
+  if (isAdmin()) loadVisitsFromSheet();
   render();
 }
 
