@@ -405,7 +405,7 @@ function openEditMember(idx) {
   document.getElementById("edit-type").value = m.type;
   document.getElementById("edit-payStatus").value = m.payStatus;
   document.getElementById("edit-status").value = m.status;
-  document.getElementById("edit-paid").value = m.paid || 0;
+  document.getElementById("edit-paid").value = (m.paid || 0).toLocaleString("ko-KR");
   document.getElementById("edit-note").value = m.note || "";
 
   document.getElementById("edit-payStatus").disabled = false;
@@ -422,7 +422,7 @@ function saveMember() {
   m.type = document.getElementById("edit-type").value;
   m.payStatus = document.getElementById("edit-payStatus").value;
   m.status = document.getElementById("edit-status").value;
-  m.paid = Number(document.getElementById("edit-paid").value) || 0;
+  m.paid = Number(document.getElementById("edit-paid").value.replace(/,/g, "")) || 0;
   m.note = document.getElementById("edit-note").value;
 
   saveDB(); closeModal("modal-member"); render();
@@ -435,6 +435,17 @@ function closeModal(id) { document.getElementById(id).classList.remove("open"); 
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".modal-overlay").forEach(el => {
     el.addEventListener("click", e => { if (e.target === el) el.classList.remove("open"); });
+  });
+
+  const paidInput = document.getElementById("edit-paid");
+  paidInput.addEventListener("input", e => {
+    const pos = paidInput.selectionStart;
+    const before = paidInput.value.length;
+    const raw = paidInput.value.replace(/[^0-9]/g, "");
+    paidInput.value = raw ? Number(raw).toLocaleString("ko-KR") : "";
+    // 커서 위치 보정
+    const after = paidInput.value.length;
+    paidInput.setSelectionRange(pos + (after - before), pos + (after - before));
   });
 });
 

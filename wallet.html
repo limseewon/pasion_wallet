@@ -257,11 +257,27 @@
         </div>
         <div class="form-group">
           <label class="form-label">납부액 (원)</label>
-          <input
-            class="form-control"
-            type="number"
-            id="edit-paid"
-            placeholder="0" />
+          <div style="position: relative">
+            <input
+              class="form-control"
+              type="text"
+              inputmode="numeric"
+              id="edit-paid"
+              placeholder="0"
+              style="padding-right: 36px; text-align: right" />
+            <span
+              style="
+                position: absolute;
+                right: 14px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: var(--gray4);
+                font-size: 14px;
+                pointer-events: none;
+              "
+              >원</span
+            >
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">비고</label>
